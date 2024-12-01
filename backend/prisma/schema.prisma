@@ -11,7 +11,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = "postgresql://LTIdbUser:D1ymf8wyQEGthFR1E9xhCq@localhost:5432/LTIdb"
 }
 
 model Candidate {
@@ -24,6 +24,9 @@ model Candidate {
   educations        Education[]
   workExperiences   WorkExperience[]
   resumes           Resume[]
+  applications      Application[]
+
+  @@index([lastName])
 }
 
 model Education {
@@ -54,4 +57,170 @@ model Resume {
   uploadDate  DateTime
   candidateId Int
   candidate   Candidate @relation(fields: [candidateId], references: [id])
+}
+
+model Company {
+  id        Int       @id @default(autoincrement())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  employees Employee[]
+  positions Position[]
+
+  @@index([name])
+}
+
+model Employee {
+  id        Int      @id @default(autoincrement())
+  companyId Int
+  name      String
+  email     String   @unique
+  role      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+  interviews Interview[]
+
+  @@index([companyId])
+  @@index([role])
+}
+
+model PositionStatus {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+  positions Position[]
+}
+
+model EmploymentType {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  positions Position[]
+}
+
+model Position {
+  id                 Int              @id @default(autoincrement())
+  companyId          Int
+  interviewFlowId    Int
+  title              String
+  description        String?
+  statusId           Int
+  isVisible          Boolean          @default(true)
+  location           String?
+  jobDescription     String?
+  requirements       String?
+  responsibilities   String?
+  salaryMin          Float?
+  salaryMax          Float?
+  employmentTypeId   Int
+  benefits           String?
+  companyDescription String?
+  applicationDeadline DateTime?
+  contactInfo        String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  company       Company       @relation(fields: [companyId], references: [id])
+  interviewFlow InterviewFlow @relation(fields: [interviewFlowId], references: [id])
+  status        PositionStatus @relation(fields: [statusId], references: [id])
+  employmentType EmploymentType @relation(fields: [employmentTypeId], references: [id])
+  applications  Application[]
+
+  @@index([companyId])
+  @@index([interviewFlowId])
+  @@index([title])
+  @@index([statusId])
+}
+
+model InterviewFlow {
+  id           Int             @id @default(autoincrement())
+  description  String
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  positions    Position[]
+  steps        InterviewStep[]
+
+  @@index([description])
+}
+
+model InterviewType {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  steps       InterviewStep[]
+}
+
+model InterviewStep {
+  id              Int           @id @default(autoincrement())
+  interviewFlowId Int
+  interviewTypeId Int
+  name            String
+  orderIndex      Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  interviewFlow InterviewFlow @relation(fields: [interviewFlowId], references: [id])
+  interviewType InterviewType @relation(fields: [interviewTypeId], references: [id])
+  interviews    Interview[]
+
+  @@index([interviewFlowId])
+  @@index([interviewTypeId])
+}
+
+model ApplicationStatus {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  applications Application[]
+}
+
+model Application {
+  id           Int       @id @default(autoincrement())
+  positionId   Int
+  candidateId  Int
+  applicationDate DateTime @default(now())
+  statusId     Int
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  position   Position   @relation(fields: [positionId], references: [id])
+  candidate  Candidate  @relation(fields: [candidateId], references: [id])
+  status     ApplicationStatus @relation(fields: [statusId], references: [id])
+  interviews Interview[]
+
+  @@index([positionId])
+  @@index([candidateId])
+  @@index([statusId])
+}
+
+model InterviewResult {
+  id         Int        @id @default(autoincrement())
+  name       String     @unique
+  interviews Interview[]
+}
+
+model Interview {
+  id              Int           @id @default(autoincrement())
+  applicationId   Int
+  interviewStepId Int
+  employeeId      Int
+  interviewDate   DateTime
+  resultId        Int?
+  score           Int?          @default(0)
+  notes           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  application   Application   @relation(fields: [applicationId], references: [id])
+  interviewStep InterviewStep @relation(fields: [interviewStepId], references: [id])
+  employee      Employee      @relation(fields: [employeeId], references: [id])
+  result        InterviewResult? @relation(fields: [resultId], references: [id])
+
+  @@index([applicationId])
+  @@index([interviewStepId])
+  @@index([employeeId])
+  @@index([interviewDate])
 }
